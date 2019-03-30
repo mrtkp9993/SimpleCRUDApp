@@ -1,5 +1,9 @@
 /*
- * Copyright (C) 2019  muratkoptur
+ * Copyright (C) 2019  Murat Koptur
+ *
+ * Contact: mkoptur3@gmail.com
+ *
+ * Last edit: 3/30/19 10:21 PM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,7 +56,7 @@ func (a *App) getProducts(w http.ResponseWriter, r *http.Request) {
 		products = append(products, p)
 	}
 
-	json.NewEncoder(w).Encode(products)
+	_ = json.NewEncoder(w).Encode(products)
 }
 
 // curl --header "Content-Type: application/json" --request POST --data '{"name": "ABC", "manufacturer": "ACME"}' \

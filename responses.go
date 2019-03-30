@@ -1,5 +1,9 @@
 /*
- * Copyright (C) 2019  muratkoptur
+ * Copyright (C) 2019  Murat Koptur
+ *
+ * Contact: mkoptur3@gmail.com
+ *
+ * Last edit: 3/30/19 10:21 PM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +31,7 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	w.Write(response)
+	_, _ = w.Write(response)
 }
 
 func respondWithMessage(w http.ResponseWriter, code int, message string) {
