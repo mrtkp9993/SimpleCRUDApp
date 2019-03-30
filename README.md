@@ -16,6 +16,8 @@ create table products
 );
 ```
 
+You can generate data from http://filldb.info/.
+
 ## Example Requests
 
 To get all entries from table:
