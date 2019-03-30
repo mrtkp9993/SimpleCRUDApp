@@ -1,5 +1,6 @@
 # Simple CRUD App w/ Gorilla/Mux, MariaDB
 [![Go Report Card](https://goreportcard.com/badge/github.com/mrtkp9993/SimpleCRUDApp)](https://goreportcard.com/report/github.com/mrtkp9993/SimpleCRUDApp)
+[![CodeFactor](https://www.codefactor.io/repository/github/mrtkp9993/simplecrudapp/badge)](https://www.codefactor.io/repository/github/mrtkp9993/simplecrudapp)
 
 ## Features 
 
