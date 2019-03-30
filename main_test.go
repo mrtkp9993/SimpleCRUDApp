@@ -18,7 +18,11 @@
 package main_test
 
 import (
+	"github.com/magiconair/properties/assert"
 	"github.com/spf13/viper"
+	"log"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
@@ -35,16 +39,51 @@ func TestMain(m *testing.M) {
 		viper.GetString("DB.port"),
 		viper.GetString("DB.db_name"))
 
-	os.Exit(m.Run())
+	createTestTable()
+	createTestData()
+
+	code := m.Run()
+
+	clearTestTable()
+
+	os.Exit(code)
+}
+
+func createTestTable() {
+	query := `create table if not exists products_test
+	(
+		id           int(11) unsigned auto_increment primary key,
+		name         tinytext null,
+		manufacturer tinytext null
+	);`
+	if _, err := a.DB.Exec(query); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func createTestData() {
+	query := `INSERT INTO products_test (id, name, manufacturer) VALUES 
+            (1, 'eum', 'Osinski-Hagenes'),
+			(2, 'eos', 'Runolfsson-Jacobi'),
+			(3, 'incidunt', 'Mosciski Ltd')`
+	if _, err := a.DB.Exec(query); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func clearTestTable() {
+	query := `DROP TABLE products_test`
+	if _, err := a.DB.Exec(query); err != nil {
+		log.Fatal(err)
+	}
 }
 
 // TODO Write tests
-func TestGetProducts(t *testing.T) {
-
-}
-
 func TestGetProduct(t *testing.T) {
-
+	request, _ := http.NewRequest("GET", "/api/products/1", nil)
+	response := httptest.NewRecorder()
+	a.Router.ServeHTTP(response, request)
+	assert.Equal(t, http.StatusOK, response.Code)
 }
 
 func TestCreateProduct(t *testing.T) {
