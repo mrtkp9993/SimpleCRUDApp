@@ -1,5 +1,9 @@
 /*
- * Copyright (C) 2019  muratkoptur
+ * Copyright (C) 2019  Murat Koptur
+ *
+ * Contact: mkoptur3@gmail.com
+ *
+ * Last edit: 3/31/19 6:03 PM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,8 +22,11 @@
 package main_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"github.com/magiconair/properties/assert"
 	"github.com/spf13/viper"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -78,22 +85,39 @@ func clearTestTable() {
 	}
 }
 
-// TODO Write tests
 func TestGetProduct(t *testing.T) {
-	request, _ := http.NewRequest("GET", "/api/products/1", nil)
+	request, _ := http.NewRequest("GET", "/api/products/2", nil)
 	response := httptest.NewRecorder()
 	a.Router.ServeHTTP(response, request)
-	assert.Equal(t, http.StatusOK, response.Code)
+	assert.Equal(t, response.Code, http.StatusOK)
 }
 
 func TestCreateProduct(t *testing.T) {
-
+	newProduct := main.Product{Id: 1, Name: "Earthquake Pills", Manufacturer: "ACME"}
+	payload, _ := json.Marshal(newProduct)
+	request, _ := http.NewRequest("POST", "/api/products/new", bytes.NewReader(payload))
+	response := httptest.NewRecorder()
+	a.Router.ServeHTTP(response, request)
+	assert.Equal(t, response.Code, http.StatusCreated)
 }
 
 func TestUpdateProduct(t *testing.T) {
+	updatedProduct := main.Product{Id: 1, Name: "Do-It-Yourself Tornado Kit", Manufacturer: "ACME"}
+	payload, _ := json.Marshal(updatedProduct)
+	request, _ := http.NewRequest("PUT", "/api/products/1", bytes.NewReader(payload))
+	response := httptest.NewRecorder()
+	a.Router.ServeHTTP(response, request)
+	assert.Equal(t, response.Code, http.StatusOK)
 
+	responseData := main.Product{}
+	responseBody, _ := ioutil.ReadAll(response.Body)
+	json.Unmarshal(responseBody, &responseData)
+	assert.Equal(t, responseData.Id, 1)
 }
 
 func TestDeleteProduct(t *testing.T) {
-
+	request, _ := http.NewRequest("DELETE", "/api/products/1", nil)
+	response := httptest.NewRecorder()
+	a.Router.ServeHTTP(response, request)
+	assert.Equal(t, response.Code, http.StatusOK)
 }
