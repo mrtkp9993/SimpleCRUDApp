@@ -3,7 +3,7 @@
  *
  * Contact: mkoptur3@gmail.com
  *
- * Last edit: 3/30/19 10:21 PM
+ * Last edit: 4/1/19 12:23 PM
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
 
 type App struct {
 	Router *mux.Router
+	Logger http.Handler
 	DB     *sql.DB
 }
 
@@ -159,9 +162,10 @@ func (a *App) Initialize(username, password, server, port, dbName string) {
 	}
 
 	a.Router = mux.NewRouter()
+	a.Logger = handlers.CombinedLoggingHandler(os.Stdout, a.Router)
 	a.InitializeRoutes()
 }
 
 func (a *App) Run(addr string) {
-	log.Fatal(http.ListenAndServe(":"+viper.GetString("Server.port"), a.Router))
+	log.Fatal(http.ListenAndServe(":"+viper.GetString("Server.port"), a.Logger))
 }
