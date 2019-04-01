@@ -1,8 +1,6 @@
 language: go
 
 go:
-  - 1.10.x
-  - 1.11.x
   - 1.12.x
 
 env:
@@ -16,10 +14,10 @@ before_script:
   - go get github.com/fzipp/gocyclo
 
 script:
-  - go test -race -coverprofile=coverage.txt -covermode=atomic
-  - go vet .
-  - megacheck .
-  - gocyclo -avg .
-  - golint .
+  - go test -race -coverprofile=coverage.txt -covermode=atomic ./...
+  - go vet ./...
+  - megacheck ./...
+  - gocyclo -avg ./...
+  - golint ./...
 
 after_success: bash <(curl -s https://codecov.io/bash)
