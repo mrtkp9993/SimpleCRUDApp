@@ -87,6 +87,7 @@ func clearTestTable() {
 
 func TestGetProduct(t *testing.T) {
 	request, _ := http.NewRequest("GET", "/api/products/2", nil)
+	request.SetBasicAuth("user1", "pass1")
 	response := httptest.NewRecorder()
 	a.Router.ServeHTTP(response, request)
 	assert.Equal(t, response.Code, http.StatusOK)
@@ -96,6 +97,7 @@ func TestCreateProduct(t *testing.T) {
 	newProduct := main.Product{Id: 1, Name: "Earthquake Pills", Manufacturer: "ACME"}
 	payload, _ := json.Marshal(newProduct)
 	request, _ := http.NewRequest("POST", "/api/products/new", bytes.NewReader(payload))
+	request.SetBasicAuth("user1", "pass1")
 	response := httptest.NewRecorder()
 	a.Router.ServeHTTP(response, request)
 	assert.Equal(t, response.Code, http.StatusCreated)
@@ -105,6 +107,7 @@ func TestUpdateProduct(t *testing.T) {
 	updatedProduct := main.Product{Id: 1, Name: "Do-It-Yourself Tornado Kit", Manufacturer: "ACME"}
 	payload, _ := json.Marshal(updatedProduct)
 	request, _ := http.NewRequest("PUT", "/api/products/1", bytes.NewReader(payload))
+	request.SetBasicAuth("user1", "pass1")
 	response := httptest.NewRecorder()
 	a.Router.ServeHTTP(response, request)
 	assert.Equal(t, response.Code, http.StatusOK)
@@ -117,6 +120,7 @@ func TestUpdateProduct(t *testing.T) {
 
 func TestDeleteProduct(t *testing.T) {
 	request, _ := http.NewRequest("DELETE", "/api/products/1", nil)
+	request.SetBasicAuth("user1", "pass1")
 	response := httptest.NewRecorder()
 	a.Router.ServeHTTP(response, request)
 	assert.Equal(t, response.Code, http.StatusOK)

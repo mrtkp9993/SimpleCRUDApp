@@ -22,3 +22,10 @@ type Product struct {
 	Name         string `json:"name"`
 	Manufacturer string `json:"manufacturer"`
 }
+
+type User struct {
+	Id             int
+	Username       string
+	Saltedpassword string
+	Salt           string
+}

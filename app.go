@@ -23,15 +23,18 @@ package main
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type App struct {
@@ -40,7 +43,7 @@ type App struct {
 	DB     *sql.DB
 }
 
-// curl 127.0.0.1:8000/api/products/list
+// curl --user user1:pass1 127.0.0.1:8000/api/products/list
 func (a *App) getProducts(w http.ResponseWriter, r *http.Request) {
 	rows, err := a.DB.Query("SELECT * FROM products")
 	if err != nil {
@@ -63,7 +66,7 @@ func (a *App) getProducts(w http.ResponseWriter, r *http.Request) {
 }
 
 // curl --header "Content-Type: application/json" --request POST --data '{"name": "ABC", "manufacturer": "ACME"}' \
-// 		127.0.0.1:8000/api/products/new
+// 		--user user1:pass1 127.0.0.1:8000/api/products/new
 func (a *App) createProduct(w http.ResponseWriter, r *http.Request) {
 	var p Product
 	decoder := json.NewDecoder(r.Body)
@@ -82,7 +85,7 @@ func (a *App) createProduct(w http.ResponseWriter, r *http.Request) {
 	respondWithMessage(w, http.StatusCreated, "New row added.")
 }
 
-// curl 127.0.0.1:8000/api/products/10
+// curl --user user1:pass1 127.0.0.1:8000/api/products/10
 func (a *App) getProduct(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -101,7 +104,7 @@ func (a *App) getProduct(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, p)
 }
 
-// curl --request PUT --data '{"name": "ABC", "manufacturer": "ACME"}' 127.0.0.1:8000/api/products/11
+// curl --request PUT --data '{"name": "ABC", "manufacturer": "ACME"}' --user user1:pass1 127.0.0.1:8000/api/products/11
 func (a *App) updateProduct(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -128,7 +131,7 @@ func (a *App) updateProduct(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, p)
 }
 
-// curl --request DELETE 127.0.0.1:8000/api/products/10
+// curl --request DELETE --user user1:pass1 127.0.0.1:8000/api/products/10
 func (a *App) deleteProduct(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -146,12 +149,48 @@ func (a *App) deleteProduct(w http.ResponseWriter, r *http.Request) {
 	respondWithMessage(w, http.StatusOK, "Deleted.")
 }
 
+func (a *App) authHandler(f http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
+		if len(s) != 2 {
+			respondWithError(w, http.StatusUnauthorized, "Invalid/Missing Credentials.")
+			return
+		}
+
+		b, err := base64.StdEncoding.DecodeString(s[1])
+		if err != nil {
+			respondWithError(w, http.StatusUnauthorized, "Invalid/Missing Credentials.")
+			return
+		}
+
+		pair := strings.SplitN(string(b), ":", 2)
+		if len(pair) != 2 {
+			respondWithError(w, http.StatusUnauthorized, "Invalid/Missing Credentials.")
+			return
+		}
+
+		user := User{Username: pair[0]}
+		row := a.DB.QueryRow("SELECT id, saltedpassword, salt FROM users WHERE username=?", user.Username)
+		if err := row.Scan(&user.Id, &user.Saltedpassword, &user.Salt); err != nil {
+			respondWithError(w, http.StatusUnauthorized, "Invalid/Missing Credentials.")
+			return
+		}
+
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Saltedpassword), []byte(pair[1]+user.Salt)); err != nil {
+			respondWithError(w, http.StatusUnauthorized, "Invalid/Missing Credentials.")
+			return
+		}
+
+		f(w, r)
+	}
+}
+
 func (a *App) InitializeRoutes() {
-	a.Router.HandleFunc("/api/products/list", a.getProducts).Methods("GET")
-	a.Router.HandleFunc("/api/products/new", a.createProduct).Methods("POST")
-	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.getProduct).Methods("GET")
-	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.updateProduct).Methods("PUT")
-	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.deleteProduct).Methods("DELETE")
+	a.Router.HandleFunc("/api/products/list", a.authHandler(a.getProducts)).Methods("GET")
+	a.Router.HandleFunc("/api/products/new", a.authHandler(a.createProduct)).Methods("POST")
+	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.authHandler(a.getProduct)).Methods("GET")
+	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.authHandler(a.updateProduct)).Methods("PUT")
+	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.authHandler(a.deleteProduct)).Methods("DELETE")
 }
 
 func (a *App) Initialize(username, password, server, port, dbName string) {

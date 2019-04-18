@@ -8,6 +8,8 @@ Basic CRUD operations (Create-Read-Update-Delete).
 
 ## Database Scheme
 
+Data table:
+
 ```sql
 create table products
 (
@@ -19,16 +21,30 @@ create table products
 
 You can generate data from http://filldb.info/.
 
+Users table:
+
+```sql
+CREATE TABLE `users` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `username` text NOT NULL,
+  `saltedpassword` text NOT NULL,
+  `salt` text NOT NULL,
+  PRIMARY KEY (`id`)
+);
+```
+
+````Password+Salt```` is encrypted with ``bcrypt``with 10 rounds and stored in ``saltedpassword``column.
+
 ## Example Requests
 
 To get all entries from table:
 ```
-curl 127.0.0.1:8000/api/products/list
+curl --user user1:pass1 127.0.0.1:8000/api/products/list
 ```
 
 To get an entry with `id` (where id equals 10):
 ```
-curl 127.0.0.1:8000/api/products/10
+curl --user user1:pass1 127.0.0.1:8000/api/products/10
 ```
 
 To create an entry:
@@ -36,17 +52,17 @@ To create an entry:
 curl --header "Content-Type: application/json" \
      --request POST \
      --data '{"name": "ABC", "manufacturer": "ACME"}' \
-	 127.0.0.1:8000/api/products/new
+	 --user user1:pass1 127.0.0.1:8000/api/products/new
 ```
 
 To update an entry:
 ```
 curl --request PUT \ 
      --data '{"name": "ABC", "manufacturer": "ACME"}' \ 
-     127.0.0.1:8000/api/products/11
+     --user user1:pass1 127.0.0.1:8000/api/products/11
 ```
 
 To delete an entry:
 ```
-curl --request DELETE 127.0.0.1:8000/api/products/10
+curl --request DELETE --user user1:pass1 127.0.0.1:8000/api/products/10
 ```
