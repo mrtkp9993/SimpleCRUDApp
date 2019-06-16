@@ -149,8 +149,8 @@ func (a *App) deleteProduct(w http.ResponseWriter, r *http.Request) {
 	respondWithMessage(w, http.StatusOK, "Deleted.")
 }
 
-func (a *App) authHandler(f http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (a *App) authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		s := strings.SplitN(r.Header.Get("Authorization"), " ", 2)
 		if len(s) != 2 {
 			respondWithError(w, http.StatusUnauthorized, "Invalid/Missing Credentials.")
@@ -181,16 +181,16 @@ func (a *App) authHandler(f http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		f(w, r)
-	}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (a *App) InitializeRoutes() {
-	a.Router.HandleFunc("/api/products/list", a.authHandler(a.getProducts)).Methods("GET")
-	a.Router.HandleFunc("/api/products/new", a.authHandler(a.createProduct)).Methods("POST")
-	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.authHandler(a.getProduct)).Methods("GET")
-	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.authHandler(a.updateProduct)).Methods("PUT")
-	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.authHandler(a.deleteProduct)).Methods("DELETE")
+	a.Router.HandleFunc("/api/products/list", a.getProducts).Methods("GET")
+	a.Router.HandleFunc("/api/products/new", a.createProduct).Methods("POST")
+	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.getProduct).Methods("GET")
+	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.updateProduct).Methods("PUT")
+	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.deleteProduct).Methods("DELETE")
 }
 
 func (a *App) Initialize(username, password, server, port, dbName string) {
@@ -202,9 +202,15 @@ func (a *App) Initialize(username, password, server, port, dbName string) {
 
 	a.Router = mux.NewRouter()
 	a.Logger = handlers.CombinedLoggingHandler(os.Stdout, a.Router)
+	a.Router.Use(a.authMiddleware)
 	a.InitializeRoutes()
 }
 
 func (a *App) Run(addr string) {
-	log.Fatal(http.ListenAndServe(":"+viper.GetString("Server.port"), a.Logger))
+	// https://stackoverflow.com/questions/38376226/how-to-allow-options-method-from-mobile-using-gorilla-handler
+	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
+	originsOk := handlers.AllowedOrigins([]string{"*"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
+	log.Fatal(http.ListenAndServe(":"+viper.GetString("Server.port"),
+		handlers.CORS(headersOk, originsOk, methodsOk)(a.Logger)))
 }
