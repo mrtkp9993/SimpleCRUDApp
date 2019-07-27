@@ -44,7 +44,9 @@ func TestMain(m *testing.M) {
 		viper.GetString("DB.password"),
 		viper.GetString("DB.server"),
 		viper.GetString("DB.port"),
-		viper.GetString("DB.db_name"))
+		viper.GetString("DB.db_name"),
+		viper.GetString("Cache.addr"),
+		viper.GetString("Cache.password"))
 
 	createTestTable()
 	createTestData()

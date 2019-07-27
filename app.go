@@ -25,6 +25,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/go-redis/redis"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -32,15 +33,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type App struct {
 	Router *mux.Router
 	Logger http.Handler
 	DB     *sql.DB
+	Cache  *redis.Client
 }
 
 // curl --user user1:pass1 127.0.0.1:8000/api/products/list
@@ -185,6 +189,31 @@ func (a *App) authMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func (a *App) cacheMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		content, err := a.Cache.Get(r.RequestURI).Result()
+		if err != nil {
+			rr := httptest.NewRecorder()
+			next.ServeHTTP(rr, r)
+			content = rr.Body.String()
+			err = a.Cache.Set(r.RequestURI, content, 10*time.Minute).Err()
+			if err != nil {
+				respondWithError(w, http.StatusInternalServerError, err.Error())
+			}
+			respondWithString(w, http.StatusOK, content)
+			return
+		} else {
+			respondWithString(w, http.StatusOK, content)
+			return
+		}
+	})
+}
+
 func (a *App) InitializeRoutes() {
 	a.Router.HandleFunc("/api/products/list", a.getProducts).Methods("GET")
 	a.Router.HandleFunc("/api/products/new", a.createProduct).Methods("POST")
@@ -193,16 +222,22 @@ func (a *App) InitializeRoutes() {
 	a.Router.HandleFunc("/api/products/{id:[0-9]+}", a.deleteProduct).Methods("DELETE")
 }
 
-func (a *App) Initialize(username, password, server, port, dbName string) {
+func (a *App) Initialize(username, password, server, port, dbName, cacheAddr, cachePass string) {
 	dataSource := username + ":" + password + "@tcp(" + server + ":" + port + ")/" + dbName
 	a.DB, err = sql.Open("mysql", dataSource)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	a.Cache = redis.NewClient(&redis.Options{
+		Addr:     cacheAddr,
+		Password: cachePass,
+		DB:       0,
+	})
+
 	a.Router = mux.NewRouter()
 	a.Logger = handlers.CombinedLoggingHandler(os.Stdout, a.Router)
-	a.Router.Use(a.authMiddleware)
+	a.Router.Use(a.authMiddleware, a.cacheMiddleware)
 	a.InitializeRoutes()
 }
 

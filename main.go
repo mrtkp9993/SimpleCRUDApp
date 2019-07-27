@@ -40,7 +40,9 @@ func main() {
 		viper.GetString("DB.password"),
 		viper.GetString("DB.server"),
 		viper.GetString("DB.port"),
-		viper.GetString("DB.db_name"))
+		viper.GetString("DB.db_name"),
+		viper.GetString("Cache.addr"),
+		viper.GetString("Cache.password"))
 
 	a.Run(viper.GetString("Server.port"))
 }
