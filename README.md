@@ -35,6 +35,14 @@ CREATE TABLE `users` (
 
 ````Password+Salt```` is encrypted with ``bcrypt``with 10 rounds and stored in ``saltedpassword``column.
 
+## Caching 
+
+You can edit cache time from [this line](https://github.com/mrtkp9993/SimpleCRUDApp/blob/master/app.go#L204):
+
+```
+err = a.Cache.Set(r.RequestURI, content, 10*time.Minute).Err()
+```
+
 ## Example Requests
 
 To get all entries from table:
