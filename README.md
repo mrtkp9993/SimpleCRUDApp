@@ -2,6 +2,10 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mrtkp9993/SimpleCRUDApp)](https://goreportcard.com/report/github.com/mrtkp9993/SimpleCRUDApp)
 [![CodeFactor](https://www.codefactor.io/repository/github/mrtkp9993/simplecrudapp/badge)](https://www.codefactor.io/repository/github/mrtkp9993/simplecrudapp)
 
+## NOTE
+
+> This project is not longer maintained. I'll make a new better project.
+
 ## Features 
 
 Basic CRUD operations (Create-Read-Update-Delete).
